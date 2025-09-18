@@ -2,14 +2,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // <-- 1. IMPORT FIRESTORE
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/venue_model.dart';
 import 'venue_detail_screen.dart';
 
 class VenueListScreen extends StatelessWidget {
   const VenueListScreen({super.key});
-
-  // 2. The dummyVenues list has been DELETED.
 
   @override
   Widget build(BuildContext context) {
@@ -24,12 +22,9 @@ class VenueListScreen extends StatelessWidget {
           ),
         ],
       ),
-      // 3. We wrap the body in a StreamBuilder.
       body: StreamBuilder<QuerySnapshot>(
-        // This is the stream we are listening to. It gets all documents from the 'venues' collection.
         stream: FirebaseFirestore.instance.collection('venues').snapshots(),
         builder: (context, snapshot) {
-          // 4. Handle the different states of the stream.
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -40,7 +35,6 @@ class VenueListScreen extends StatelessWidget {
             return const Center(child: Text('No venues found.'));
           }
 
-          // 5. If we have data, we map the documents to a list of Venue objects.
           final loadedVenues = snapshot.data!.docs.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
             return Venue(
@@ -50,10 +44,10 @@ class VenueListScreen extends StatelessWidget {
               sportType: data['sportType'] ?? 'No Sport Type',
               pricePerHour: (data['pricePerHour'] as num?)?.toDouble() ?? 0.0,
               imageUrl: data['imageUrl'] ?? '',
+              description: data['description'] ?? 'No description available.',
             );
           }).toList();
 
-          // 6. We build the ListView using the data from Firestore.
           return ListView.builder(
             itemCount: loadedVenues.length,
             itemBuilder: (ctx, index) {
@@ -69,7 +63,29 @@ class VenueListScreen extends StatelessWidget {
                 child: Card(
                   margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                   child: ListTile(
-                    leading: Icon(Icons.sports_soccer, color: Theme.of(context).primaryColor),
+                    // V-- THIS IS THE UPDATED SECTION --V
+                    leading: Hero(
+                      // This tag MUST match the one on the detail screen
+                      tag: venue.id,
+                      child: ClipRRect( // Makes the image have rounded corners
+                        borderRadius: BorderRadius.circular(8.0),
+                        child: Image.network(
+                          venue.imageUrl,
+                          width: 60,  // Set a fixed width for the list item image
+                          height: 60, // Set a fixed height
+                          fit: BoxFit.cover, // Ensures the image covers the space without distortion
+                          // This errorBuilder is a fallback in case the image URL is bad or missing
+                          errorBuilder: (context, error, stackTrace) {
+                            return Icon(
+                              Icons.sports_soccer,
+                              size: 40,
+                              color: Theme.of(context).primaryColor,
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    // ^-- THIS IS THE END OF THE UPDATED SECTION --^
                     title: Text(venue.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text('${venue.sportType} - ${venue.location}'),
                     trailing: Text('Rs. ${venue.pricePerHour.toStringAsFixed(0)}/hr'),

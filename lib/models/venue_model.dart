@@ -7,6 +7,7 @@ class Venue {
   final String sportType;
   final double pricePerHour;
   final String imageUrl;
+  final String description;
 
   // This is a constructor for the class
   const Venue({
@@ -16,5 +17,6 @@ class Venue {
     required this.sportType,
     required this.pricePerHour,
     required this.imageUrl,
+    required this.description,
   });
 }
