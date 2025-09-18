@@ -1,9 +1,23 @@
-// lib/main.dart (Final for this step)
+// lib/main.dart
 
 import 'package:flutter/material.dart';
-import 'screens/venue_list_screen.dart'; // <-- ADD THIS IMPORT
+import 'package:firebase_core/firebase_core.dart'; // Make sure you have this import
+import 'firebase_options.dart';                   // Make sure you have this import
+import 'screens/auth_gate.dart';              
 
-void main() {
+// The main entry point of the application
+Future<void> main() async {
+  // This line is essential to ensure that native code bindings are initialized
+  // before any async operations, like Firebase initialization.
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // This line connects your app to your Firebase project using the
+  // configuration from firebase_options.dart. It must be awaited.
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  
+  // Only after Firebase is initialized, run the app.
   runApp(const SportsManagementApp());
 }
 
@@ -16,10 +30,13 @@ class SportsManagementApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Sports Management App',
       theme: ThemeData(
-        primarySwatch: Colors.orange,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
+        useMaterial3: true,
+        fontFamily: 'Poppins', // Your custom font
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+        // You can keep any other theme customizations here
       ),
-      home: const VenueListScreen(), // <-- CHANGE THIS LINE
+      // The first screen the user sees is the LoginScreen
+      home: const AuthGate(),
     );
   }
 }

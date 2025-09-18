@@ -1,0 +1,38 @@
+{
+  "project_info": {
+    "project_number": "704122811077",
+    "project_id": "sports-management-app-bf547",
+    "storage_bucket": "sports-management-app-bf547.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:704122811077:android:5263b1a599e016b088f6ac",
+        "android_client_info": {
+          "package_name": "com.example.sports_management_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "704122811077-ebur5vq8pqs2atgl5mbgc50hut2rfmo8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.sports_management_app",
+            "certificate_hash": "38a70d3b3856e5f622835a1e64d6e7005582c763"
+          }
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0Ch71t2QMgn47svLwRygHyYyF1sx6TJ0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
