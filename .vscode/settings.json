@@ -1,3 +1,4 @@
 {
-  "cmake.sourceDirectory": "C:/src/sports_management_app/linux"
+  "cmake.sourceDirectory": "C:/src/sports_management_app/linux",
+  "java.configuration.updateBuildConfiguration": "interactive"
 }

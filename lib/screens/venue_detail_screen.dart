@@ -1,6 +1,7 @@
 // lib/screens/venue_detail_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:sports_management_app/screens/booking_screen.dart';
 import '../models/venue_model.dart';
 
 class VenueDetailScreen extends StatelessWidget {
@@ -103,8 +104,11 @@ class VenueDetailScreen extends StatelessWidget {
       // Floating button that stays at the bottom
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // TODO: Navigate to the booking calendar screen
-          print('Book Now button pressed for venue ID: ${venue.id}');
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => BookingScreen(venue: venue),
+            ),
+          );
         },
         label: const Text('Book Now'),
         icon: const Icon(Icons.calendar_today),
