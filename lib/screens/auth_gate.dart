@@ -3,7 +3,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
-import 'venue_list_screen.dart';
+import 'tabs_screen.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -25,7 +25,7 @@ class AuthGate extends StatelessWidget {
 
         // 2. If the stream has data AND the user object is not null, they are logged in.
         if (snapshot.hasData && snapshot.data != null) {
-          return const VenueListScreen(); // Show the main app
+          return const TabsScreen(); // Show the main app
         }
 
         // 3. If the stream has no data, or the data is null, they are logged out.
