@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/venue_model.dart';
-import 'add_edit_venue_screen.dart'; // <-- 1. IMPORT THE NEW SCREEN
+import 'add_edit_venue_screen.dart';
+import 'manager_booking_screen.dart';
 
 class MyVenuesScreen extends StatelessWidget {
   const MyVenuesScreen({super.key});
@@ -49,40 +50,54 @@ class MyVenuesScreen extends StatelessWidget {
               final venueDoc = venueDocs[index];
               final venueData = venueDoc.data() as Map<String, dynamic>;
               
-              // We need to create a Venue object to pass to the edit screen
               final venue = Venue(
                   id: venueDoc.id,
-                  name: venueData['name'] ?? '',
-                  location: venueData['location'] ?? '',
+                  name: venueData['name'] ?? '', location: venueData['location'] ?? '',
                   sportType: venueData['sportType'] ?? '',
                   pricePerHour: (venueData['pricePerHour'] as num?)?.toDouble() ?? 0.0,
-                  imageUrl: venueData['imageUrl'] ?? '',
-                  description: venueData['description'] ?? '',
-                  openingTime: venueData['openingTime'] ?? '',
-                  closingTime: venueData['closingTime'] ?? '',
-                  slotDuration: (venueData['slotDuration'] as num?)?.toInt() ?? 0,
+                  imageUrl: venueData['imageUrl'] ?? '', description: venueData['description'] ?? '',
+                  openingTime: venueData['openingTime'] ?? '09:00',
+                  closingTime: venueData['closingTime'] ?? '21:00',
+                  slotDuration: (venueData['slotDuration'] as num?)?.toInt() ?? 60,
               );
 
               return Card(
                 margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                 child: ListTile(
-                  title: Text(
-                    venue.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  title: Text(venue.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text(venue.location),
-                  trailing: const Icon(Icons.edit),
-                  // V-- 2. UPDATE THE ONTAPPED FUNCTION FOR EDITING --V
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => AddEditVenueScreen(
-                          formMode: FormMode.edit, // Go in "edit" mode
-                          venue: venue, // Pass the existing venue data
-                        ),
+                  // V-- 2. THIS IS THE UPDATED TRAILING SECTION --V
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min, // Prevents the Row from taking too much space
+                    children: [
+                      // Button to manage bookings
+                      IconButton(
+                        icon: const Icon(Icons.calendar_month),
+                        tooltip: 'Manage Bookings',
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => ManagerBookingScreen(venue: venue),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
+                      // Button to edit venue details
+                      IconButton(
+                        icon: const Icon(Icons.edit),
+                        tooltip: 'Edit Venue',
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => AddEditVenueScreen(
+                                formMode: FormMode.edit, venue: venue,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -90,13 +105,10 @@ class MyVenuesScreen extends StatelessWidget {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        // V-- 3. UPDATE THE ONPRESSED FUNCTION FOR ADDING --V
         onPressed: () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => const AddEditVenueScreen(
-                formMode: FormMode.add, // Go in "add" mode
-              ),
+              builder: (context) => const AddEditVenueScreen(formMode: FormMode.add),
             ),
           );
         },
