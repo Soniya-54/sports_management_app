@@ -59,21 +59,6 @@ The project follows an **Iterative Development Model**, with multiple cycles of 
 
 ---
 
-## Testing & Evaluation
-The system will be validated through:  
-- **Unit Testing** – Authentication, booking logic, payments.  
-- **Integration Testing** – Frontend ↔ Firebase interactions.  
-- **System Testing** – Performance, reliability under real-world conditions.  
-- **User Acceptance Testing (UAT)** – Feedback from players and venue managers.  
-
-**Success Criteria:**  
-- Smooth user registration & booking  
-- Secure eSewa payment integration  
-- Reliable team formation & event features  
-- Fast and intuitive user experience  
-
----
-
 ## 👩‍💻 Authors
 - **Soniya Khadka**  
 - **Romita Dangol**  
