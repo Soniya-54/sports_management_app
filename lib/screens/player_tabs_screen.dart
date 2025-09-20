@@ -4,14 +4,14 @@ import 'package:flutter/material.dart';
 import 'venue_list_screen.dart';
 import 'my_bookings_screen.dart'; // We will create this file next
 
-class TabsScreen extends StatefulWidget {
-  const TabsScreen({super.key});
+class PlayerTabsScreen extends StatefulWidget {
+  const PlayerTabsScreen({super.key});
 
   @override
-  State<TabsScreen> createState() => _TabsScreenState();
+  State<PlayerTabsScreen> createState() => _PlayerTabsScreenState();
 }
 
-class _TabsScreenState extends State<TabsScreen> {
+class _PlayerTabsScreenState extends State<PlayerTabsScreen> {
   int _selectedPageIndex = 0; // Index of the currently selected tab
 
   // List of the main screens of our app

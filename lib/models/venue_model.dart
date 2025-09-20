@@ -9,7 +9,11 @@ class Venue {
   final String imageUrl;
   final String description;
 
-  // This is a constructor for the class
+  // NEW: Properties for dynamic time slots
+  final String openingTime;   // e.g., "09:00"
+  final String closingTime;   // e.g., "21:00"
+  final int slotDuration;     // e.g., 60 (for 60 minutes)
+
   const Venue({
     required this.id,
     required this.name,
@@ -18,5 +22,10 @@ class Venue {
     required this.pricePerHour,
     required this.imageUrl,
     required this.description,
+    
+    // NEW: Add new properties to the constructor
+    required this.openingTime,
+    required this.closingTime,
+    required this.slotDuration,
   });
 }

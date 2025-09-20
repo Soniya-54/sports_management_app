@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart'; // Import the intl package for date formatting
 import '../models/venue_model.dart';
 
 class BookingScreen extends StatefulWidget {
@@ -20,15 +21,12 @@ class _BookingScreenState extends State<BookingScreen> {
   DateTime? _selectedDay;
   CalendarFormat _calendarFormat = CalendarFormat.month;
 
-  // Time slot state variables
-  final List<String> _timeSlots = [
-    '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', 
-    '03:00 PM', '04:00 PM', '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM',
-  ];
+  // Time slot state variables (now dynamic)
+  List<String> _timeSlots = [];
   String? _selectedTimeSlot;
   var _isBooking = false;
 
-  // NEW: State variables to handle booked slots
+  // State variables to handle booked slots
   List<String> _bookedSlots = [];
   bool _isLoadingSlots = true;
 
@@ -36,18 +34,46 @@ class _BookingScreenState extends State<BookingScreen> {
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
-    // Fetch booked slots for the initial day when the screen loads
+    _generateTimeSlots();
     _fetchBookedSlots(_selectedDay!);
   }
 
-  // NEW: Function to fetch booked slots from Firestore for a specific date
+  void _generateTimeSlots() {
+    final timeFormat = DateFormat('hh:mm a');
+    final opening = TimeOfDay(
+      hour: int.parse(widget.venue.openingTime.split(':')[0]),
+      minute: int.parse(widget.venue.openingTime.split(':')[1]),
+    );
+    final closing = TimeOfDay(
+      hour: int.parse(widget.venue.closingTime.split(':')[0]),
+      minute: int.parse(widget.venue.closingTime.split(':')[1]),
+    );
+
+    List<String> slots = [];
+    TimeOfDay currentTime = opening;
+
+    while (
+        currentTime.hour < closing.hour ||
+        (currentTime.hour == closing.hour && currentTime.minute < closing.minute)) {
+      final now = DateTime.now();
+      final dt = DateTime(now.year, now.month, now.day, currentTime.hour, currentTime.minute);
+      slots.add(timeFormat.format(dt));
+      
+      final newTimeMinutes = currentTime.hour * 60 + currentTime.minute + widget.venue.slotDuration;
+      currentTime = TimeOfDay(hour: newTimeMinutes ~/ 60, minute: newTimeMinutes % 60);
+    }
+    
+    setState(() {
+      _timeSlots = slots;
+    });
+  }
+
   Future<void> _fetchBookedSlots(DateTime date) async {
     setState(() {
       _isLoadingSlots = true;
-      _bookedSlots = []; // Clear previous day's slots
+      _bookedSlots = [];
     });
 
-    // We query for a date range from the start of the day to the end of the day
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
 
@@ -58,9 +84,7 @@ class _BookingScreenState extends State<BookingScreen> {
           .where('bookingDate', isGreaterThanOrEqualTo: startOfDay)
           .where('bookingDate', isLessThanOrEqualTo: endOfDay)
           .get();
-
       final bookedTimes = querySnapshot.docs.map((doc) => doc['timeSlot'] as String).toList();
-      
       setState(() {
         _bookedSlots = bookedTimes;
         _isLoadingSlots = false;
@@ -74,78 +98,58 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   Future<void> _confirmBooking() async {
-  // Validation and user checks remain the same.
-  if (_selectedDay == null || _selectedTimeSlot == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please select a date and time slot.'), backgroundColor: Colors.red),
-    );
-    return;
-  }
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('You must be logged in to book.'), backgroundColor: Colors.red),
-    );
-    return;
-  }
-  
-  setState(() {
-    _isBooking = true;
-  });
-
-  try {
-    // Save the new booking to Firestore.
-    await FirebaseFirestore.instance.collection('bookings').add({
-      'userId': user.uid,
-      'userEmail': user.email,
-      'venueId': widget.venue.id,
-      'venueName': widget.venue.name,
-      'bookingDate': Timestamp.fromDate(_selectedDay!),
-      'timeSlot': _selectedTimeSlot,
-      'totalPrice': widget.venue.pricePerHour,
-      'bookingStatus': 'confirmed',
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-
-    // V-- THIS IS THE NEW USER EXPERIENCE LOGIC --V
-
-    // 1. Store the successful booking details in temporary variables.
-    final bookedTime = _selectedTimeSlot;
-    final bookedDay = _selectedDay;
-
-    // 2. Clear the user's current time selection.
-    setState(() {
-      _selectedTimeSlot = null;
-    });
-
-    // 3. Re-fetch all booked slots for the selected day. This will now include the new one.
-    _fetchBookedSlots(bookedDay!);
-
-    // 4. Show a non-disruptive SnackBar confirmation instead of a dialog.
-    if (mounted) {
+    if (_selectedDay == null || _selectedTimeSlot == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Successfully booked for $bookedTime!'),
-          backgroundColor: Colors.green,
-        ),
+        const SnackBar(content: Text('Please select a date and time slot.'), backgroundColor: Colors.red),
       );
+      return;
     }
-    // ^-- END OF NEW LOGIC --^
-
-  } catch (error) {
-    if (mounted) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to create booking: $error'), backgroundColor: Colors.red),
+        const SnackBar(content: Text('You must be logged in to book.'), backgroundColor: Colors.red),
       );
+      return;
     }
-  } finally {
-      if (mounted) {
-      setState(() {
-        _isBooking = false;
+    
+    setState(() { _isBooking = true; });
+
+    try {
+      await FirebaseFirestore.instance.collection('bookings').add({
+        'userId': user.uid,
+        'userEmail': user.email,
+        'venueId': widget.venue.id,
+        'venueName': widget.venue.name,
+        'bookingDate': Timestamp.fromDate(_selectedDay!),
+        'timeSlot': _selectedTimeSlot,
+        'totalPrice': widget.venue.pricePerHour,
+        'bookingStatus': 'confirmed',
+        'createdAt': FieldValue.serverTimestamp(),
       });
+
+      final bookedTime = _selectedTimeSlot;
+      final bookedDay = _selectedDay;
+      setState(() { _selectedTimeSlot = null; });
+      _fetchBookedSlots(bookedDay!);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Successfully booked for $bookedTime!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create booking: $error'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) { setState(() { _isBooking = false; }); }
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -167,9 +171,8 @@ class _BookingScreenState extends State<BookingScreen> {
               setState(() {
                 _selectedDay = selectedDay;
                 _focusedDay = focusedDay;
-                _selectedTimeSlot = null; // Reset selected time when day changes
+                _selectedTimeSlot = null;
               });
-              // NEW: Fetch bookings for the newly selected day
               _fetchBookedSlots(selectedDay);
             },
             onFormatChanged: (format) {
@@ -196,49 +199,38 @@ class _BookingScreenState extends State<BookingScreen> {
             padding: EdgeInsets.all(16.0),
             child: Text('Select a Time Slot', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           ),
-
-          // NEW: We now show a loading spinner while fetching slots, then the grid.
           Expanded(
             child: _isLoadingSlots
                 ? const Center(child: CircularProgressIndicator())
-                : GridView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      childAspectRatio: 3,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                    ),
-                    itemCount: _timeSlots.length,
-                    itemBuilder: (context, index) {
-                      final timeSlot = _timeSlots[index];
-                      final isSelected = timeSlot == _selectedTimeSlot;
-                      // NEW: Check if the slot is already booked
-                      final isBooked = _bookedSlots.contains(timeSlot);
+                : _timeSlots.isEmpty
+                  ? const Center(child: Text('No available slots for this venue.'))
+                  : GridView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        childAspectRatio: 3,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                      ),
+                      itemCount: _timeSlots.length,
+                      itemBuilder: (context, index) {
+                        final timeSlot = _timeSlots[index];
+                        final isSelected = timeSlot == _selectedTimeSlot;
+                        final isBooked = _bookedSlots.contains(timeSlot);
 
-                      return ElevatedButton(
-                        // NEW: onPressed is null if the slot is already booked, disabling the button
-                        onPressed: isBooked
-                            ? null
-                            : () {
-                                setState(() {
-                                  _selectedTimeSlot = timeSlot;
-                                });
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isSelected
-                              ? Theme.of(context).colorScheme.primary
-                              : isBooked
-                                ? Colors.grey[400] // Disabled color for booked slots
-                                : Colors.grey[200], // Default color for available slots
-                          foregroundColor: isSelected ? Colors.white : Colors.black,
-                        ),
-                        child: Text(timeSlot),
-                      );
-                    },
-                  ),
+                        return ElevatedButton(
+                          onPressed: isBooked ? null : () {
+                            setState(() { _selectedTimeSlot = timeSlot; });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isSelected ? Theme.of(context).colorScheme.primary : isBooked ? Colors.grey[400] : Colors.grey[200],
+                            foregroundColor: isSelected ? Colors.white : Colors.black,
+                          ),
+                          child: Text(timeSlot),
+                        );
+                      },
+                    ),
           ),
-          
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: _isBooking

@@ -1,6 +1,7 @@
 // lib/screens/signup_screen.dart
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -14,7 +15,10 @@ class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  var _isAuthenticating = false; // To show a loading spinner
+  var _isAuthenticating = false;
+
+  // NEW: State variable to hold the selected user role.
+  String _selectedRole = 'player';
 
   @override
   void dispose() {
@@ -23,32 +27,34 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
-  // The signup function is now an async Future
   Future<void> _signupUser() async {
-    // 1. Validate the form
     final isValid = _formKey.currentState?.validate() ?? false;
     if (!isValid) {
-      return; // If form is not valid, stop.
+      return;
     }
 
-    // Set loading state
     setState(() {
       _isAuthenticating = true;
     });
 
     try {
-      // 2. Try to create a new user with Firebase Authentication
+      // Step 1: Create the user in Firebase Authentication
       final userCredentials = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      print('Successfully registered: ${userCredentials.user?.uid}');
+      // Step 2: Store additional user details in the 'users' collection in Firestore
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredentials.user!.uid) // Use the user's unique auth ID as the document ID
+          .set({
+            'email': _emailController.text.trim(),
+            'role': _selectedRole, // Save the selected role
+            'createdAt': Timestamp.now(), // Save the registration timestamp
+          });
 
-      // 3. If successful, navigate back to the login screen
-      // The 'mounted' check is a best practice to ensure the widget is still in the tree
       if (mounted) {
-        // Optionally show a success message before popping
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Registration successful! Please log in.'), backgroundColor: Colors.green),
         );
@@ -56,7 +62,6 @@ class _SignupScreenState extends State<SignupScreen> {
       }
 
     } on FirebaseAuthException catch (error) {
-      // 4. Handle specific Firebase errors (e.g., email already in use)
       String errorMessage = 'An error occurred. Please check your credentials.';
       if (error.code == 'email-already-in-use') {
         errorMessage = 'This email address is already in use.';
@@ -69,17 +74,13 @@ class _SignupScreenState extends State<SignupScreen> {
           SnackBar(content: Text(errorMessage), backgroundColor: Theme.of(context).colorScheme.error),
         );
       }
-      print('Firebase Auth Error: ${error.code} - ${error.message}');
     } catch (error) {
-      // 5. Handle any other generic errors
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: const Text('An unknown error occurred.'), backgroundColor: Theme.of(context).colorScheme.error),
         );
       }
-      print('Generic Error: $error');
     } finally {
-      // 6. Reset loading state regardless of success or failure
       if (mounted) {
         setState(() {
           _isAuthenticating = false;
@@ -146,8 +147,30 @@ class _SignupScreenState extends State<SignupScreen> {
                     return null;
                   },
                 ),
+                const SizedBox(height: 16),
+
+                // NEW: Dropdown for selecting user role
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedRole,
+                  decoration: const InputDecoration(
+                    labelText: 'I am a...',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'player', child: Text('Player')),
+                    DropdownMenuItem(value: 'manager', child: Text('Venue Manager')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _selectedRole = value;
+                      });
+                    }
+                  },
+                ),
                 const SizedBox(height: 24),
-                // Show a loading indicator OR the button
+
                 if (_isAuthenticating)
                   const Center(child: CircularProgressIndicator())
                 else
