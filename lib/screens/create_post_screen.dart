@@ -16,9 +16,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final _formKey = GlobalKey<FormState>();
   var _isLoading = false;
 
-  // Form field controllers
   final _venueNameController = TextEditingController();
-  final _sportTypeController = TextEditingController(text: 'Futsal'); // Default value
+  final _sportTypeController = TextEditingController(text: 'Futsal');
   final _playersNeededController = TextEditingController();
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
@@ -31,29 +30,31 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     super.dispose();
   }
 
-  // Function to show the date picker
   Future<void> _presentDatePicker() async {
     final now = DateTime.now();
     final pickedDate = await showDatePicker(
       context: context,
-      initialDate: now,
+      initialDate: _selectedDate ?? now,
       firstDate: now,
-      lastDate: now.add(const Duration(days: 30)), // Can post for games up to 30 days in advance
+      lastDate: now.add(const Duration(days: 30)),
     );
-    setState(() {
-      _selectedDate = pickedDate;
-    });
+    if (pickedDate != null) {
+      setState(() {
+        _selectedDate = pickedDate;
+      });
+    }
   }
 
-  // Function to show the time picker
   Future<void> _presentTimePicker() async {
     final pickedTime = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.now(),
+      initialTime: _selectedTime ?? TimeOfDay.now(),
     );
-    setState(() {
-      _selectedTime = pickedTime;
-    });
+    if (pickedTime != null) {
+      setState(() {
+        _selectedTime = pickedTime;
+      });
+    }
   }
 
   Future<void> _submitPost() async {
@@ -66,34 +67,67 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     }
 
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return; // Safety check
+    if (user == null) return;
 
     setState(() { _isLoading = true; });
 
     try {
-      // We will create a dummy venueId for now. In a real app, you'd select from a list.
-      final venueId = FirebaseFirestore.instance.collection('venues').doc().id;
+      // V-- NEW: DOUBLE BOOKING VALIDATION LOGIC --V
+      final formattedTime = _selectedTime!.format(context);
+      final startOfDay = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day);
+      final endOfDay = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day, 23, 59, 59);
 
+      // We need to find the venueId first based on the name.
+      // This is a simplification. A real app would use a dropdown to select a venue.
+      final venueQuery = await FirebaseFirestore.instance
+          .collection('venues')
+          .where('name', isEqualTo: _venueNameController.text.trim())
+          .limit(1)
+          .get();
+      
+      if (venueQuery.docs.isEmpty) {
+        throw Exception('Venue not found. Please check the name and try again.');
+      }
+      final venueId = venueQuery.docs.first.id;
+
+      // Now check if a booking already exists for this venue, date, and time.
+      final bookingSnapshot = await FirebaseFirestore.instance
+          .collection('bookings')
+          .where('venueId', isEqualTo: venueId)
+          .where('bookingDate', isGreaterThanOrEqualTo: startOfDay)
+          .where('bookingDate', isLessThanOrEqualTo: endOfDay)
+          .where('timeSlot', isEqualTo: formattedTime)
+          .limit(1)
+          .get();
+
+      if (bookingSnapshot.docs.isNotEmpty) {
+        // If we find any documents, it means the slot is already booked.
+        throw Exception('This time slot is already booked for the selected venue and date.');
+      }
+      // ^-- END OF VALIDATION LOGIC --^
+
+
+      // If validation passes, proceed to create the post.
       await FirebaseFirestore.instance.collection('team_posts').add({
         'venueName': _venueNameController.text.trim(),
         'venueId': venueId,
         'sportType': _sportTypeController.text.trim(),
         'gameDate': Timestamp.fromDate(_selectedDate!),
-        'gameTime': _selectedTime!.format(context),
+        'gameTime': formattedTime,
         'playersNeeded': int.tryParse(_playersNeededController.text.trim()) ?? 1,
         'postedByUserId': user.uid,
         'postedByUserEmail': user.email,
         'createdAt': Timestamp.now(),
-        'joinedPlayerIds': [], // Initialize with an empty list of joined players
+        'joinedPlayerIds': [],
       });
 
       if (mounted) {
-        Navigator.of(context).pop(); // Go back after successful post
+        Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create post: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Failed to create post: ${e.toString()}'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -124,7 +158,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   children: [
                     TextFormField(
                       controller: _venueNameController,
-                      decoration: const InputDecoration(labelText: 'Venue Name'),
+                      decoration: const InputDecoration(labelText: 'Venue Name', hintText: 'Enter the exact venue name'),
                       validator: (value) => (value == null || value.trim().isEmpty) ? 'Please enter a venue name.' : null,
                     ),
                     const SizedBox(height: 16),
@@ -141,7 +175,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       validator: (value) => (value == null || int.tryParse(value.trim()) == null) ? 'Please enter a valid number.' : null,
                     ),
                     const SizedBox(height: 24),
-                    // Date and Time Pickers
                     Row(
                       children: [
                         Expanded(
