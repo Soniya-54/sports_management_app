@@ -112,8 +112,8 @@ class MyVenuesScreen extends StatelessWidget {
             ),
           );
         },
-        child: const Icon(Icons.add),
         tooltip: 'Add New Venue',
+        child: const Icon(Icons.add),
       ),
     );
   }

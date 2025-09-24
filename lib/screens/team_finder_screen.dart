@@ -129,8 +129,8 @@ class _TeamFinderScreenState extends State<TeamFinderScreen> {
         onPressed: () {
           Navigator.of(context).push(MaterialPageRoute(builder: (context) => const CreatePostScreen()));
         },
-        child: const Icon(Icons.add),
         tooltip: 'Create a post',
+        child: const Icon(Icons.add),
       ),
     );
   }

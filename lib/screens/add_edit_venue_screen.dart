@@ -162,7 +162,7 @@ class _AddEditVenueScreenState extends State<AddEditVenueScreen> {
                       validator: (value) => (value?.isEmpty ?? true) || double.tryParse(value!) == null ? 'Please enter a valid price.' : null,
                     ),
                     DropdownButtonFormField<String>(
-                      value: _selectedSportType,
+                      initialValue: _selectedSportType,
                       decoration: const InputDecoration(labelText: 'Sport Type'),
                       items: ['Futsal', 'Cricket', 'Badminton', 'Other'].map((String value) {
                         return DropdownMenuItem<String>(value: value, child: Text(value));
