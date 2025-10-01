@@ -1,7 +1,7 @@
 // lib/screens/venue_list_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+// Note: We no longer need firebase_auth in this file
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/venue_model.dart';
 import 'venue_detail_screen.dart';
@@ -14,13 +14,7 @@ class VenueListScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Find a Venue'),
-        actions: [
-          IconButton(
-            onPressed: () => FirebaseAuth.instance.signOut(),
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-          ),
-        ],
+        // The 'actions' property with the logout button has been removed from here.
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('venues').snapshots(),
@@ -37,7 +31,6 @@ class VenueListScreen extends StatelessWidget {
 
           final loadedVenues = snapshot.data!.docs.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
-            // This is the updated mapping logic
             return Venue(
               id: doc.id,
               name: data['name'] ?? 'No Name',
@@ -46,9 +39,6 @@ class VenueListScreen extends StatelessWidget {
               pricePerHour: (data['pricePerHour'] as num?)?.toDouble() ?? 0.0,
               imageUrl: data['imageUrl'] ?? '',
               description: data['description'] ?? 'No description available.',
-              
-              // NEW: Read the dynamic time slot fields from Firestore
-              // Provide sensible defaults in case the data is missing.
               openingTime: data['openingTime'] ?? '09:00',
               closingTime: data['closingTime'] ?? '21:00',
               slotDuration: (data['slotDuration'] as num?)?.toInt() ?? 60,
