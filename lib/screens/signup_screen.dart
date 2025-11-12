@@ -17,6 +17,9 @@ class _SignupScreenState extends State<SignupScreen> {
   final _passwordController = TextEditingController();
   var _isAuthenticating = false;
 
+  // Controls whether the password is obscured in the password field
+  bool _obscurePassword = true;
+
   // NEW: State variable to hold the selected user role.
   String _selectedRole = 'player';
 
@@ -134,12 +137,21 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Password',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.lock_outline),
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                      tooltip: _obscurePassword ? 'Show password' : 'Hide password',
+                    ),
                   ),
-                  obscureText: true,
+                  obscureText: _obscurePassword,
                   validator: (value) {
                     if (value == null || value.trim().length < 6) {
                       return 'Password must be at least 6 characters long.';

@@ -225,6 +225,12 @@ class _BookingScreenState extends State<BookingScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: isSelected ? Theme.of(context).colorScheme.primary : isBooked ? Colors.grey[400] : Colors.grey[200],
                             foregroundColor: isSelected ? Colors.white : Colors.black,
+                            // Reduce vertical padding and allow the button to shrink so
+                            // the time text does not get clipped. This overrides the
+                            // app-wide padding which was increased globally.
+                            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+                            minimumSize: const Size(0, 0),
+                            textStyle: const TextStyle(fontSize: 14),
                           ),
                           child: Text(timeSlot),
                         );

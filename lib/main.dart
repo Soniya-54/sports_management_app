@@ -32,7 +32,34 @@ class SportsManagementApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: 'Poppins', // Your custom font
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+        // Use provided green (#80b918) as the seed color so the Material
+        // color scheme derives primary/secondary/containers from it.
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF80B918)),
+        // Button theming: make buttons use the primary green with white text
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF80B918),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
+            textStyle: const TextStyle(fontWeight: FontWeight.w600),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+        
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFF80B918),
+            // Match vertical padding increase for consistency
+            padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: const Color(0xFF80B918),
+            side: const BorderSide(color: Color(0xFF80B918)),
+            padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
+          ),
+        ),
         // You can keep any other theme customizations here
       ),
       // The first screen the user sees is the LoginScreen

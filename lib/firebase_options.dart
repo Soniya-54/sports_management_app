@@ -59,4 +59,5 @@ class DefaultFirebaseOptions {
     projectId: 'sports-management-app-bf547',
     storageBucket: 'sports-management-app-bf547.firebasestorage.app',
   );
+
 }
