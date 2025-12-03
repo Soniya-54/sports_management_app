@@ -12,7 +12,7 @@ In Nepal, booking futsal courts, cricket grounds, or badminton halls is still ma
 - Difficulty forming complete teams  
 - Limited visibility of local sports events  
 
-Existing global solutions (like Playtomic, SportsKey) are not adapted to the Nepali context (e.g., no eSewa integration, limited community features).  
+Existing global solutions (like Playtomic, SportsKey) are not adapted to the Nepali context.  
 This project fills that gap by building a **localized and community-focused sports management app**.
 
 ---
@@ -22,7 +22,6 @@ This project fills that gap by building a **localized and community-focused spor
 - 👥 **Team Formation** – Connect with players to complete squads for futsal, cricket, etc.  
 - 🎟️ **Event Registration & Ticketing** – Register for tournaments, buy tickets, and receive updates.  
 - 📲 **Automated Notifications** – Booking confirmations via SMS/email.  
-- 💳 **Secure Payments** – Integrated with **eSewa**, Nepal’s leading digital wallet.  
 - 🏢 **Venue Manager Dashboard** – Manage reservations, schedules, and customer communication.  
 
 ---
@@ -41,7 +40,6 @@ This project fills that gap by building a **localized and community-focused spor
 ## Technology Stack
 - **Frontend (Mobile):** [Flutter](https://flutter.dev/) (cross-platform: Android & iOS)  
 - **Backend & Database:** [Google Firebase](https://firebase.google.com/) (Firestore, Authentication, Cloud Functions)  
-- **Payments:** [eSewa](https://esewa.com.np/) Integration  
 - **Design Tools:** [Figma](https://figma.com/) for UI/UX wireframes & prototypes  
 - **Notifications:** Firebase Cloud Functions with Nodemailer/SendGrid & SMS APIs (Twilio, Sparrow SMS)  
 - **Version Control:** Git & GitHub  
@@ -54,7 +52,6 @@ The project follows an **Iterative Development Model**, with multiple cycles of 
 **Phases:**
 1. **Foundation** – Firebase setup, authentication, user profiles.  
 2. **Core Functionality** – Venue search, booking, real-time updates.  
-3. **Payment Integration** – eSewa integration with server-side verification.  
 4. **Extended Features & Deployment** – Team formation, event registration, notifications, and app deployment on Android & iOS.  
 
 ---
