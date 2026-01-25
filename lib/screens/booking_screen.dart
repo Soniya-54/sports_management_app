@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart'; // Import the intl package for date formatting
 import '../models/venue_model.dart';
+import 'payment_screen.dart';
 
 class BookingScreen extends StatefulWidget {
   final Venue venue;
@@ -52,17 +53,29 @@ class _BookingScreenState extends State<BookingScreen> {
     List<String> slots = [];
     TimeOfDay currentTime = opening;
 
-    while (
-        currentTime.hour < closing.hour ||
-        (currentTime.hour == closing.hour && currentTime.minute < closing.minute)) {
+    while (currentTime.hour < closing.hour ||
+        (currentTime.hour == closing.hour &&
+            currentTime.minute < closing.minute)) {
       final now = DateTime.now();
-      final dt = DateTime(now.year, now.month, now.day, currentTime.hour, currentTime.minute);
+      final dt = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        currentTime.hour,
+        currentTime.minute,
+      );
       slots.add(timeFormat.format(dt));
-      
-      final newTimeMinutes = currentTime.hour * 60 + currentTime.minute + widget.venue.slotDuration;
-      currentTime = TimeOfDay(hour: newTimeMinutes ~/ 60, minute: newTimeMinutes % 60);
+
+      final newTimeMinutes =
+          currentTime.hour * 60 +
+          currentTime.minute +
+          widget.venue.slotDuration;
+      currentTime = TimeOfDay(
+        hour: newTimeMinutes ~/ 60,
+        minute: newTimeMinutes % 60,
+      );
     }
-    
+
     setState(() {
       _timeSlots = slots;
     });
@@ -84,7 +97,14 @@ class _BookingScreenState extends State<BookingScreen> {
           .where('bookingDate', isGreaterThanOrEqualTo: startOfDay)
           .where('bookingDate', isLessThanOrEqualTo: endOfDay)
           .get();
-      final bookedTimes = querySnapshot.docs.map((doc) => doc['timeSlot'] as String).toList();
+      // Filter only confirmed or pending_verification bookings
+      final bookedTimes = querySnapshot.docs
+          .where((doc) {
+            final status = doc['bookingStatus'] as String?;
+            return status == 'confirmed' || status == 'pending_verification';
+          })
+          .map((doc) => doc['timeSlot'] as String)
+          .toList();
       setState(() {
         _bookedSlots = bookedTimes;
         _isLoadingSlots = false;
@@ -100,63 +120,112 @@ class _BookingScreenState extends State<BookingScreen> {
   Future<void> _confirmBooking() async {
     if (_selectedDay == null || _selectedTimeSlot == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a date and time slot.'), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text('Please select a date and time slot.'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You must be logged in to book.'), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text('You must be logged in to book.'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
-    
-    setState(() { _isBooking = true; });
+
+    setState(() {
+      _isBooking = true;
+    });
 
     try {
-      await FirebaseFirestore.instance.collection('bookings').add({
-        'userId': user.uid,
-        'userEmail': user.email,
-        'venueId': widget.venue.id,
-        'venueName': widget.venue.name,
-        'bookingDate': Timestamp.fromDate(_selectedDay!),
-        'timeSlot': _selectedTimeSlot,
-        'totalPrice': widget.venue.pricePerHour,
-        'bookingStatus': 'confirmed',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      // Fetch venue details to get managerId
+      final venueDoc = await FirebaseFirestore.instance
+          .collection('venues')
+          .doc(widget.venue.id)
+          .get();
 
-      final bookedTime = _selectedTimeSlot;
-      final bookedDay = _selectedDay;
-      setState(() { _selectedTimeSlot = null; });
-      _fetchBookedSlots(bookedDay!);
+      final venueData = venueDoc.data();
+      final managerId = venueData?['managerId'] as String?;
 
+      if (managerId == null) {
+        throw Exception('Venue manager information not found');
+      }
+
+      // Create a pending booking (not confirmed until payment)
+      final bookingRef = await FirebaseFirestore.instance
+          .collection('bookings')
+          .add({
+            'userId': user.uid,
+            'userEmail': user.email,
+            'venueId': widget.venue.id,
+            'venueName': widget.venue.name,
+            'venueManagerId': managerId,
+            'bookingDate': Timestamp.fromDate(_selectedDay!),
+            'timeSlot': _selectedTimeSlot,
+            'totalPrice': widget.venue.pricePerHour,
+            'bookingStatus':
+                'pending', // Status will change to 'confirmed' after payment
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+
+      // Navigate to payment screen
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Successfully booked for $bookedTime!'),
-            backgroundColor: Colors.green,
+        final paymentSuccess = await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => PaymentScreen(
+              bookingId: bookingRef.id,
+              amount: widget.venue.pricePerHour,
+              venueName: widget.venue.name,
+              venueManagerId: managerId,
+            ),
           ),
         );
+
+        // If payment was successful, update UI
+        if (paymentSuccess == true) {
+          final bookedDay = _selectedDay;
+          setState(() {
+            _selectedTimeSlot = null;
+          });
+          _fetchBookedSlots(bookedDay!);
+        } else {
+          // If payment failed or was cancelled, delete the pending booking
+          await bookingRef.delete();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Booking cancelled. Please try again.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
       }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create booking: $error'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Failed to create booking: $error'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
-      if (mounted) { setState(() { _isBooking = false; }); }
+      if (mounted) {
+        setState(() {
+          _isBooking = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Book ${widget.venue.name}'),
-      ),
+      appBar: AppBar(title: Text('Book ${widget.venue.name}')),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -177,7 +246,9 @@ class _BookingScreenState extends State<BookingScreen> {
             },
             onFormatChanged: (format) {
               if (_calendarFormat != format) {
-                setState(() { _calendarFormat = format; });
+                setState(() {
+                  _calendarFormat = format;
+                });
               }
             },
             onPageChanged: (focusedDay) {
@@ -197,45 +268,64 @@ class _BookingScreenState extends State<BookingScreen> {
           const Divider(),
           const Padding(
             padding: EdgeInsets.all(16.0),
-            child: Text('Select a Time Slot', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            child: Text(
+              'Select a Time Slot',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
           ),
           Expanded(
             child: _isLoadingSlots
                 ? const Center(child: CircularProgressIndicator())
                 : _timeSlots.isEmpty
-                  ? const Center(child: Text('No available slots for this venue.'))
-                  : GridView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        childAspectRatio: 3,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                      ),
-                      itemCount: _timeSlots.length,
-                      itemBuilder: (context, index) {
-                        final timeSlot = _timeSlots[index];
-                        final isSelected = timeSlot == _selectedTimeSlot;
-                        final isBooked = _bookedSlots.contains(timeSlot);
+                ? const Center(
+                    child: Text('No available slots for this venue.'),
+                  )
+                : GridView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          childAspectRatio: 3,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                        ),
+                    itemCount: _timeSlots.length,
+                    itemBuilder: (context, index) {
+                      final timeSlot = _timeSlots[index];
+                      final isSelected = timeSlot == _selectedTimeSlot;
+                      final isBooked = _bookedSlots.contains(timeSlot);
 
-                        return ElevatedButton(
-                          onPressed: isBooked ? null : () {
-                            setState(() { _selectedTimeSlot = timeSlot; });
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isSelected ? Theme.of(context).colorScheme.primary : isBooked ? Colors.grey[400] : Colors.grey[200],
-                            foregroundColor: isSelected ? Colors.white : Colors.black,
-                            // Reduce vertical padding and allow the button to shrink so
-                            // the time text does not get clipped. This overrides the
-                            // app-wide padding which was increased globally.
-                            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
-                            minimumSize: const Size(0, 0),
-                            textStyle: const TextStyle(fontSize: 14),
+                      return ElevatedButton(
+                        onPressed: isBooked
+                            ? null
+                            : () {
+                                setState(() {
+                                  _selectedTimeSlot = timeSlot;
+                                });
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isSelected
+                              ? Theme.of(context).colorScheme.primary
+                              : isBooked
+                              ? Colors.grey[400]
+                              : Colors.grey[200],
+                          foregroundColor: isSelected
+                              ? Colors.white
+                              : Colors.black,
+                          // Reduce vertical padding and allow the button to shrink so
+                          // the time text does not get clipped. This overrides the
+                          // app-wide padding which was increased globally.
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 8.0,
+                            horizontal: 8.0,
                           ),
-                          child: Text(timeSlot),
-                        );
-                      },
-                    ),
+                          minimumSize: const Size(0, 0),
+                          textStyle: const TextStyle(fontSize: 14),
+                        ),
+                        child: Text(timeSlot),
+                      );
+                    },
+                  ),
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),

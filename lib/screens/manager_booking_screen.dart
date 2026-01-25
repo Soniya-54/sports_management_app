@@ -47,18 +47,37 @@ class _ManagerBookingScreenState extends State<ManagerBookingScreen> {
     );
     List<String> slots = [];
     TimeOfDay currentTime = opening;
-    while (currentTime.hour < closing.hour || (currentTime.hour == closing.hour && currentTime.minute < closing.minute)) {
+    while (currentTime.hour < closing.hour ||
+        (currentTime.hour == closing.hour &&
+            currentTime.minute < closing.minute)) {
       final now = DateTime.now();
-      final dt = DateTime(now.year, now.month, now.day, currentTime.hour, currentTime.minute);
+      final dt = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        currentTime.hour,
+        currentTime.minute,
+      );
       slots.add(timeFormat.format(dt));
-      final newTimeMinutes = currentTime.hour * 60 + currentTime.minute + widget.venue.slotDuration;
-      currentTime = TimeOfDay(hour: newTimeMinutes ~/ 60, minute: newTimeMinutes % 60);
+      final newTimeMinutes =
+          currentTime.hour * 60 +
+          currentTime.minute +
+          widget.venue.slotDuration;
+      currentTime = TimeOfDay(
+        hour: newTimeMinutes ~/ 60,
+        minute: newTimeMinutes % 60,
+      );
     }
-    setState(() { _timeSlots = slots; });
+    setState(() {
+      _timeSlots = slots;
+    });
   }
 
   Future<void> _fetchBookedSlots(DateTime date) async {
-    setState(() { _isLoadingSlots = true; _bookedSlots = []; });
+    setState(() {
+      _isLoadingSlots = true;
+      _bookedSlots = [];
+    });
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
     try {
@@ -68,52 +87,85 @@ class _ManagerBookingScreenState extends State<ManagerBookingScreen> {
           .where('bookingDate', isGreaterThanOrEqualTo: startOfDay)
           .where('bookingDate', isLessThanOrEqualTo: endOfDay)
           .get();
-      final bookedTimes = querySnapshot.docs.map((doc) => doc['timeSlot'] as String).toList();
-      setState(() { _bookedSlots = bookedTimes; _isLoadingSlots = false; });
+      final bookedTimes = querySnapshot.docs
+          .map((doc) => doc['timeSlot'] as String)
+          .toList();
+      setState(() {
+        _bookedSlots = bookedTimes;
+        _isLoadingSlots = false;
+      });
     } catch (e) {
       print("Error fetching booked slots: $e");
-      setState(() { _isLoadingSlots = false; });
+      setState(() {
+        _isLoadingSlots = false;
+      });
     }
   }
 
   Future<void> _blockSlot() async {
     if (_selectedDay == null || _selectedTimeSlot == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a date and time slot to block.'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a date and time slot to block.'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    setState(() { _isBooking = true; });
+    setState(() {
+      _isBooking = true;
+    });
     try {
       await FirebaseFirestore.instance.collection('bookings').add({
-        'userId': user.uid, 'userEmail': 'walk-in/phone', 'venueId': widget.venue.id,
-        'venueName': widget.venue.name, 'bookingDate': Timestamp.fromDate(_selectedDay!),
-        'timeSlot': _selectedTimeSlot, 'totalPrice': widget.venue.pricePerHour,
-        'bookingStatus': 'confirmed', 'bookingType': 'walk-in',
+        'userId': user.uid,
+        'userEmail': 'walk-in/phone',
+        'venueId': widget.venue.id,
+        'venueName': widget.venue.name,
+        'bookingDate': Timestamp.fromDate(_selectedDay!),
+        'timeSlot': _selectedTimeSlot,
+        'totalPrice': widget.venue.pricePerHour,
+        'bookingStatus': 'confirmed',
+        'bookingType': 'walk-in',
         'createdAt': FieldValue.serverTimestamp(),
       });
       final bookedTime = _selectedTimeSlot;
       final bookedDay = _selectedDay;
-      setState(() { _selectedTimeSlot = null; });
+      setState(() {
+        _selectedTimeSlot = null;
+      });
       _fetchBookedSlots(bookedDay!);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Successfully blocked slot for $bookedTime!'), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Successfully blocked slot for $bookedTime!'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to block slot: $error'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to block slot: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } finally {
-      if (mounted) { setState(() { _isBooking = false; }); }
+      if (mounted) {
+        setState(() {
+          _isBooking = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Manage Slots: ${widget.venue.name}'),
-      ),
+      appBar: AppBar(title: Text('Manage Slots: ${widget.venue.name}')),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -125,41 +177,78 @@ class _ManagerBookingScreenState extends State<ManagerBookingScreen> {
             calendarFormat: _calendarFormat,
             startingDayOfWeek: StartingDayOfWeek.monday,
             onDaySelected: (selectedDay, focusedDay) {
-              setState(() { _selectedDay = selectedDay; _focusedDay = focusedDay; _selectedTimeSlot = null; });
+              setState(() {
+                _selectedDay = selectedDay;
+                _focusedDay = focusedDay;
+                _selectedTimeSlot = null;
+              });
               _fetchBookedSlots(selectedDay);
             },
             onFormatChanged: (format) {
-              if (_calendarFormat != format) { setState(() { _calendarFormat = format; }); }
+              if (_calendarFormat != format) {
+                setState(() {
+                  _calendarFormat = format;
+                });
+              }
             },
-            onPageChanged: (focusedDay) { _focusedDay = focusedDay; },
+            onPageChanged: (focusedDay) {
+              _focusedDay = focusedDay;
+            },
             calendarStyle: CalendarStyle(
-              todayDecoration: BoxDecoration(color: Theme.of(context).colorScheme.secondary.withOpacity(0.5), shape: BoxShape.circle),
-              selectedDecoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, shape: BoxShape.circle),
+              todayDecoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.secondary.withOpacity(0.5),
+                shape: BoxShape.circle,
+              ),
+              selectedDecoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                shape: BoxShape.circle,
+              ),
             ),
           ),
           const Divider(),
           const Padding(
             padding: EdgeInsets.all(16.0),
-            child: Text('Select a Time Slot to Block/Manage', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            child: Text(
+              'Select a Time Slot to Block/Manage',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
           ),
           Expanded(
             child: _isLoadingSlots
                 ? const Center(child: CircularProgressIndicator())
                 : GridView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3, childAspectRatio: 3, crossAxisSpacing: 10, mainAxisSpacing: 10,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          childAspectRatio: 3,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                        ),
                     itemCount: _timeSlots.length,
                     itemBuilder: (context, index) {
                       final timeSlot = _timeSlots[index];
                       final isSelected = timeSlot == _selectedTimeSlot;
                       final isBooked = _bookedSlots.contains(timeSlot);
                       return ElevatedButton(
-                        onPressed: isBooked ? null : () { setState(() { _selectedTimeSlot = timeSlot; }); },
+                        onPressed: isBooked
+                            ? null
+                            : () {
+                                setState(() {
+                                  _selectedTimeSlot = timeSlot;
+                                });
+                              },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isSelected ? Theme.of(context).colorScheme.primary : isBooked ? Colors.grey[400] : Colors.grey[200],
-                          foregroundColor: isSelected ? Colors.white : Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          backgroundColor: isSelected
+                              ? Theme.of(context).colorScheme.primary
+                              : isBooked
+                              ? Colors.grey[400]
+                              : Colors.grey[200],
+                          foregroundColor: isSelected
+                              ? Colors.white
+                              : Colors.black,
+                          textStyle: const TextStyle(fontSize: 12),
                         ),
                         child: Text(timeSlot),
                       );
