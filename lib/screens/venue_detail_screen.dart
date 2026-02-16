@@ -19,10 +19,17 @@ class VenueDetailScreen extends StatelessWidget {
             expandedHeight: screenSize.height * 0.35,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.symmetric(horizontal: 48, vertical: 12),
+              titlePadding: const EdgeInsets.symmetric(
+                horizontal: 48,
+                vertical: 12,
+              ),
               title: Text(
                 venue.name,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, shadows: [Shadow(blurRadius: 2, color: Colors.black54)]),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  shadows: [Shadow(blurRadius: 2, color: Colors.black54)],
+                ),
               ),
               background: Hero(
                 tag: venue.id, // The tag must be unique (venue ID is perfect)
@@ -38,7 +45,11 @@ class VenueDetailScreen extends StatelessWidget {
                     return Container(
                       color: Colors.grey[300],
                       child: const Center(
-                        child: Icon(Icons.sports_soccer, size: 100, color: Colors.grey),
+                        child: Icon(
+                          Icons.sports_soccer,
+                          size: 100,
+                          color: Colors.grey,
+                        ),
                       ),
                     );
                   },
@@ -47,73 +58,108 @@ class VenueDetailScreen extends StatelessWidget {
             ),
           ),
           SliverList(
-            delegate: SliverChildListDelegate(
-              [
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${venue.sportType} in ${venue.location}',
-                              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Text(
-                            'Rs. ${venue.pricePerHour.toStringAsFixed(0)}',
+            delegate: SliverChildListDelegate([
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${venue.sportType} in ${venue.location}',
                             style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
+                              fontSize: 16,
+                              color: Colors.grey[700],
                             ),
                           ),
-                        ],
-                      ),
-                      Text(
-                        '/ hour',
-                         style: TextStyle(
-                            fontSize: 14,
+                        ),
+                        const SizedBox(width: 16),
+                        Text(
+                          'Rs. ${venue.pricePerHour.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
                             color: Theme.of(context).colorScheme.primary,
                           ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      '/ hour',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
-                      const Divider(height: 32, thickness: 1),
-                      const Text(
-                        'About this venue',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    const Divider(height: 32, thickness: 1),
+                    const Text(
+                      'About this venue',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        venue.description,
-                        style: const TextStyle(fontSize: 16, height: 1.5),
-                      ),
-                      const SizedBox(height: 120), // Pushes content up from the button
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      venue.description,
+                      style: const TextStyle(fontSize: 16, height: 1.5),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ]),
+          ),
+        ],
+      ),
+      // Fixed button at the bottom
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => BookingScreen(venue: venue),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.calendar_today),
+                SizedBox(width: 8),
+                Text(
+                  'Book Venue',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
-      // Floating button that stays at the bottom
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => BookingScreen(venue: venue),
-            ),
-          );
-        },
-        label: const Text('Book Now'),
-        icon: const Icon(Icons.calendar_today),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import '../services/email_service.dart';
 
 class PendingBookingsScreen extends StatelessWidget {
   const PendingBookingsScreen({super.key});
@@ -269,6 +270,14 @@ class PendingBookingsScreen extends StatelessWidget {
 
     if (confirmed == true) {
       try {
+        // Get booking details before updating
+        final bookingDoc = await FirebaseFirestore.instance
+            .collection('bookings')
+            .doc(bookingId)
+            .get();
+
+        final bookingData = bookingDoc.data();
+
         await FirebaseFirestore.instance
             .collection('bookings')
             .doc(bookingId)
@@ -277,10 +286,25 @@ class PendingBookingsScreen extends StatelessWidget {
               'confirmedAt': FieldValue.serverTimestamp(),
             });
 
+        // Send confirmation email
+        if (bookingData != null) {
+          final userEmail = bookingData['userEmail'] as String?;
+          if (userEmail != null && userEmail.isNotEmpty) {
+            EmailService.sendBookingConfirmationEmail(
+              toEmail: userEmail,
+              userName: userEmail.split('@')[0], // Extract name from email
+              venueName: bookingData['venueName'] ?? 'N/A',
+              bookingDate: (bookingData['bookingDate'] as Timestamp).toDate(),
+              timeSlot: bookingData['timeSlot'] ?? 'N/A',
+              totalPrice: (bookingData['totalPrice'] ?? 0).toDouble(),
+            );
+          }
+        }
+
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Booking confirmed successfully!'),
+              content: Text('Booking confirmed and email sent!'),
               backgroundColor: Colors.green,
             ),
           );
@@ -326,6 +350,14 @@ class PendingBookingsScreen extends StatelessWidget {
 
     if (confirmed == true) {
       try {
+        // Get booking details before updating
+        final bookingDoc = await FirebaseFirestore.instance
+            .collection('bookings')
+            .doc(bookingId)
+            .get();
+
+        final bookingData = bookingDoc.data();
+
         await FirebaseFirestore.instance
             .collection('bookings')
             .doc(bookingId)
@@ -334,10 +366,25 @@ class PendingBookingsScreen extends StatelessWidget {
               'rejectedAt': FieldValue.serverTimestamp(),
             });
 
+        // Send rejection email
+        if (bookingData != null) {
+          final userEmail = bookingData['userEmail'] as String?;
+          if (userEmail != null && userEmail.isNotEmpty) {
+            EmailService.sendBookingRejectionEmail(
+              toEmail: userEmail,
+              userName: userEmail.split('@')[0], // Extract name from email
+              venueName: bookingData['venueName'] ?? 'N/A',
+              bookingDate: (bookingData['bookingDate'] as Timestamp).toDate(),
+              timeSlot: bookingData['timeSlot'] ?? 'N/A',
+              totalPrice: (bookingData['totalPrice'] ?? 0).toDouble(),
+            );
+          }
+        }
+
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Booking rejected'),
+              content: Text('Booking rejected and email sent'),
               backgroundColor: Colors.orange,
             ),
           );

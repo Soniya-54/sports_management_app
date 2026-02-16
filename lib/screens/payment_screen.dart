@@ -307,7 +307,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             Icons.phone_android,
                             color: Colors.purple,
                           ),
-                          title: const Text('Khalti Number'),
+                          title: const Text('Payment Number'),
                           subtitle: Text(
                             _khaltiNumber!,
                             style: const TextStyle(
@@ -319,7 +319,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             icon: const Icon(Icons.copy),
                             onPressed: () => _copyToClipboard(
                               _khaltiNumber!,
-                              'Khalti number',
+                              'Payment number',
                             ),
                           ),
                         ),
